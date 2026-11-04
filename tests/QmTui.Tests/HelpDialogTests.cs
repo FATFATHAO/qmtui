@@ -38,6 +38,49 @@ public class HelpDialogTests
     }
 
     [Fact]
+    public void KeyColumn_KeepsDescriptionsAligned()
+    {
+        var lines = HelpDialog.BuildDisplayLines();
+        int lineIdx = 0;
+        int? alignedCol = null;
+
+        foreach (var (_, rows) in HelpDialog.KeysHelpLines)
+        {
+            lineIdx++;   // 分组标题
+            foreach (var (key, desc) in rows)
+            {
+                var line = lines[lineIdx++];
+                Assert.EndsWith(desc, line);
+
+                var prefix = line[..^desc.Length];
+                Assert.StartsWith($" {key}", prefix);
+                Assert.EndsWith(" ", prefix);   // 键名与说明之间至少一个空格
+
+                // 全部键名的说明必须从同一列开始；键名本身超过列宽就会破坏这一点
+                int prefixCols = prefix.Sum(ch => ch > 127 ? 2 : 1);
+                Assert.Equal(alignedCol ??= prefixCols, prefixCols);
+            }
+            lineIdx++;   // 分组间空行
+        }
+    }
+
+    [Fact]
+    public void KeysContainOnlyAsciiOrCjkIdeographs()
+    {
+        // 箭头、省略号等 Ambiguous 宽度字符在终端里可能占 1 列也可能占 2 列，
+        // 会破坏说明列对齐；键名只允许 ASCII 和汉字（汉字固定两列）。
+        foreach (var (_, rows) in HelpDialog.KeysHelpLines)
+        {
+            foreach (var (key, _) in rows)
+            {
+                Assert.All(key, ch => Assert.True(
+                    ch <= 0x7F || (ch >= 0x4E00 && ch <= 0x9FFF),
+                    $"键名含宽度不可控字符: {key}"));
+            }
+        }
+    }
+
+    [Fact]
     public void HelpLines_FitDialogWidth()
     {
         // 弹窗宽 76 列，CJK 按 2 列折算，超出部分会被终端裁掉

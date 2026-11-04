@@ -330,7 +330,6 @@ public sealed partial class MainWindow : Window
         // 顶部帮助按钮：键位与鼠标操作总览（按 ? 或 F1 同样唤起）
         _helpBtn = new Button
         {
-            Text = "[?] 帮助",
             NoDecorations = true,
             Y = 0,
             ShadowStyle = ShadowStyles.None,
